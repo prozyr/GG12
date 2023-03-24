@@ -1,0 +1,31 @@
+[General]
+last-configname=A-Ad-2
+last-runnumber=0
+
+[RunModeProfiles]
+run-playback-speed=100
+run-min-playback-speed=0.01
+run-max-playback-speed=100
+run-min-animation-speed=nan
+run-max-animation-speed=nan
+fast-playback-speed=1000
+fast-min-playback-speed=1
+fast-max-playback-speed=1e+6
+fast-min-animation-speed=nan
+fast-max-animation-speed=nan
+
+[Inspector-0]
+object=gg1.server.BUFFER OVERFLOW DISTRIBUTION
+classname=omnetpp::cDoubleHistogram
+id=@Variant(\0\0\0\x81\xff\xff\xff\xff\xff\xff\xff\xff)
+type=2
+geom=@Rect(884 618 478 328)
+fullscreen=false
+
+[Inspector-1]
+object=gg1.server.BUFFER AVE. OVER. LOSSES DIST. Double
+classname=omnetpp::cDoubleHistogram
+id=@Variant(\0\0\0\x81\xff\xff\xff\xff\xff\xff\xff\xff)
+type=2
+geom=@Rect(1381 603 478 328)
+fullscreen=false
