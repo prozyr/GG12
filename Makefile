@@ -1,12 +1,12 @@
 #
-# OMNeT++/OMNEST Makefile for GG1
+# OMNeT++/OMNEST Makefile for GG4
 #
 # This file was generated with the command:
-#  opp_makemake -f
+#  opp_makemake -f --deep
 #
 
 # Name of target to be created (-o option)
-TARGET = GG1$(D)$(EXE_SUFFIX)
+TARGET = GG4$(D)$(EXE_SUFFIX)
 TARGET_DIR = .
 
 # User interface (uncomment one) (-u option)
