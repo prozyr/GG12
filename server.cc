@@ -7,21 +7,23 @@ class Server : public cSimpleModule
     cQueue queue;	            //the queue of jobs; it is assumed that the first job in the queue is the one being serviced
 	cMessage *departure;        //special message; it reminds about the end of service and the need for job departure
 	simtime_t departure_time;   //time of the next departure
-	// histograms
-	cDoubleHistogram hist_overflow, hist_over_aveD;
-	cLongHistogram hist_over_aveL;
-	// variables
-	simtime_t time_overflow, time_start_buffer, t;
-	int start;
-	cMessage *arrival_time;
-	struct statistic
-	{
-		int N, deleted, accepted, deleted_in_one_row;
-		double answer;	// Size of queue
-	}queueStat;
-	bool del, ZLICZANIE;
-	double deldel;
-	double follow1,follow2;
+	int N;
+	double accepted,deleted,OverflowCounter;
+	double L;
+	cDoubleHistogram overflowBuffer;
+	cLongHistogram overflowBufferPeriod;
+	//cDoubleHistogram overflowBufferPeriod;
+	cDoubleHistogram timeToOverflowBuffer;
+	cDoubleHistogram burstRatio;
+	double noOverflow=0;
+	simtime_t overflowTime,start;
+	simtime_t timeToOverflow;
+	double period,overflowDouble;
+	double getMeanPossible=0;
+	int check;
+	double K,G,B;
+	double oneTimeDel;
+	double AvgBufferLoss;
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msgin);
@@ -30,101 +32,169 @@ class Server : public cSimpleModule
 
 Define_Module(Server);
 
+
 void Server::initialize()
 {
 	departure = new cMessage("Departure");
+	overflowBuffer.setName("overflow");
+	overflowBuffer.setRange(0,20);
+	overflowBuffer.setNumCells(200);
 
-	queueStat = {10,0,0,0,0.0}; start = 0;
-	// arrival_time = new cMessage("ar_time");
-	// t = 1;
-	del = false;
-	ZLICZANIE = false;
-	deldel = 1.0;
-	// scheduleAt(simTime()+t,arrival_time);
-	// Ad.2 OVERFLOW
-	hist_overflow.setName("BUFFER OVERFLOW DISTRIBUTION");
-	hist_overflow.setRange(0,30);
-	hist_overflow.setNumCells(200);
-	// Ad.3 LOSSES
-	hist_over_aveL.setName("BUFFER AVE. OVER. LOSSES DIST. Long");
-	hist_over_aveL.setRange(0,10);
+	overflowBufferPeriod.setName("overflowPeriod");
+	overflowBufferPeriod.setRange(0,20);
+	//overflowBufferPeriod.setNumCells(200);
 
-	hist_over_aveD.setName("BUFFER AVE. OVER. LOSSES DIST. Double");
-	hist_over_aveD.setRange(0,200);
-	hist_over_aveD.setNumCells(200);
-	// hist_over_aveL.setNumCells(200);
+	timeToOverflowBuffer.setName("timetooverflow");
+	timeToOverflowBuffer.setRange(0,400);
+	timeToOverflowBuffer.setNumCells(4000);
 
-	WATCH(follow1);
-	WATCH(follow2);
+	//burstRatio.setName("burst");
+	//burstRatio.setRange(0,20);
+	//burstRatio.setNumCells(200);
+
+
+	N=10;
+	accepted=0;
+	deleted=0;
+	B = 0;
+	L=0;
+
+	check=0;
+	oneTimeDel=0;
+	OverflowCounter=1;
+	AvgBufferLoss;
+	WATCH(L);
 }
 
 
 void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive: a job from the source, or the special message initiating job departure
 {
-	// if (msgin==arrival_time)
-	// {
-	// 	scheduleAt(simTime()+t,arrival_time);
-	// }
-    // else
-	if (msgin==departure)   //job departure
+    if (msgin==departure)   //job departure
 	{
-		if (!(queue.getLength() <= queueStat.N)&&del)
-		{
-			hist_overflow.collect(simTime() - (((cMessage*)queue.front())->getTimestamp()));
-			hist_over_aveL.collect(queueStat.deleted_in_one_row);
-			EV << "DELETED IN ONE ROW: " << queueStat.deleted_in_one_row << "\n";
-			follow1 = hist_overflow.getMean(); follow2 = hist_over_aveL.getMean();
-			deldel = (double)queueStat.deleted_in_one_row;
-			queueStat.deleted_in_one_row = 0;
+
+		if(oneTimeDel != 0){
+			overflowBufferPeriod.collect(oneTimeDel);
+			oneTimeDel = 0;
+			getMeanPossible=1;
 		}
 
+		if(queue.getLength() < N && check == 1){
+
+			overflowTime = (simTime()-(((cMessage *)queue.front())->getTimestamp()));
+			//overflowDouble = (simTime().dbl()-(((cMessage *)queue.front())->getTimestamp()).dbl());
+
+			//EV << overflowTime << " OVERFLOWTIME\n";
+			//EV << overflowDouble << " DOUBLEOVERFLOWTIME\n";
+			overflowBuffer.collect(overflowTime);
+
+			//if(oneTimeDel!=0){
+				//period = (double)(oneTimeDel)/(overflowTime.dbl());
+				//simtime_t NewPeriod = (Pomiar.dbl())/(double)(oneTimeDel);
+				//EV << overflowTime.dbl() << " DOUBLE RZUTOWANIE";
+				//EV << period << " PERIOD\n";
+			//	EV << NewPeriod << " NewPeriod\n";
+			//	AvgBufferLoss = deleted/OverflowCounter;
+				//overflowBufferPeriod.collect(oneTimeDel);
+				//overflowBufferPeriod.collect(period);
+			//}
+			//	EV << OverflowCounter << " OVERFLOWCOUNTER\n";
+				OverflowCounter++;
+				check = 0;
+				oneTimeDel=0;
+		}
+
+		if(queue.getLength()>=N && noOverflow == 1){
+
+			timeToOverflow = (simTime()-start+par("service_time"));
+
+			timeToOverflowBuffer.collect(timeToOverflow);
+
+			noOverflow = 0;
+		}
 
 		cMessage *msg = (cMessage *)queue.pop();    //remove the finished job from the head of the queue
+
+
 		send(msg,"out");                            //depart the finished job
-		EV << "DEPARTURE queue: " << queue.getLength();
 		if (!queue.isEmpty())                         //if the queue is not empty, initiate the next service, i.e. schedule the next departure event in the future
 		{
 			departure_time=simTime()+par("service_time");
 	        scheduleAt(departure_time,departure);
 		}
-		if (queue.getLength() == 0 && !ZLICZANIE)
-		{
-			time_start_buffer = simTime();
-			ZLICZANIE = true;
-		}
 	}
-	else if (queue.getLength() <= queueStat.N)                   //job arrival
+	else if(queue.getLength() <= N)                    //job arrival  (double)par("buffer_N")
 	{
-		if (!(queue.getLength() <= queueStat.N)&&del)
+
+		if(queue.getLength()==N && check==0)
 		{
-			hist_overflow.collect(simTime() - (((cMessage*)queue.front())->getTimestamp()));
-			hist_over_aveL.collect(queueStat.deleted_in_one_row);
-			EV << "DELETED IN ONE ROW: " << queueStat.deleted_in_one_row << "\n";
-			follow1 = hist_overflow.getMean(); follow2 = hist_over_aveL.getMean();
-			queueStat.deleted_in_one_row = 0;
+
+			check = 1;
+			//EV << " START\n";
+			//Pomiar = simTime();
+
 		}
-		EV << "ARRIVAL queue: " << queue.getLength();
-		// hist_overflow.collect(queueStat.answer); // Ad2
+
+		msgin->setTimestamp();
+
 		if (queue.isEmpty())  //if the queue is empty, the job that has just arrived has to be served immediately, i.e. the departure event of this job has to be scheduled in the future
 		{
+
+			if(noOverflow == 0){
+
+			noOverflow = 1;
+			start  = simTime();
+			//start = (((cMessage *)queue.front())->getTimestamp());
+		}
+
+
 			departure_time=simTime()+par("service_time");
             scheduleAt(departure_time,departure);
 		}
-		if(queue.getLength() == queueStat.N-1 && ZLICZANIE && deldel>0.0){
-            hist_over_aveD.collect((simTime()-time_start_buffer)/deldel);
-            ZLICZANIE = false;
-        }
-		queueStat.accepted ++;
-		msgin->setTimestamp();
+
+
+
+
 		queue.insert(msgin); //insert the job at the end of the queue
+
+		accepted++;
 	}
-	else
-	{
-		del = true;
-		EV << "DELETE queue: " << queue.getLength();
-		queueStat.deleted_in_one_row++;
-		queueStat.deleted ++;
+	else {
+
 		delete msgin;
+		deleted++;
+		if(check==1){
+		oneTimeDel++;
+		EV << oneTimeDel << " TEMP DEL\n";
+		}
+
+
 	}
-	queueStat.answer = (double)queueStat.deleted/(queueStat.deleted + queueStat.accepted);
+
+	L = deleted/(accepted+deleted);
+
+
+		if(getMeanPossible == 1){
+		G = overflowBufferPeriod.getMean();
+		K = 1/(1-L);
+		B = G/K;
+
+		EV << K << " K\n";
+		EV << G << " G\n";
+		EV << B << " B\n";
+		//burstRatio.collect(B);
+		}
+		//EV << L << " L\n";
+	//EV << accepted << " ACCEPTED\n";
+	//EV << deleted << " DELETED\n";
+
+	if(oneTimeDel>20)
+	EV << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
 }
+
+
+
+
+
+
+
+
