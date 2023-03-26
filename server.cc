@@ -8,16 +8,19 @@ class Server : public cSimpleModule
 	cMessage *departure;        //special message; it reminds about the end of service and the need for job departure
 	simtime_t departure_time;   //time of the next departure
 	int N;
-	double accepted,deleted;
+	double accepted,deleted,OverflowCounter;
 	double L;
 	cDoubleHistogram overflowBuffer;
 	//cLongHistogram overflowBufferPeriod;
 	cDoubleHistogram overflowBufferPeriod;
 	simtime_t start=0;
 	simtime_t overflowTime;
+	simtime_t Pomiar;
 	double period,overflowDouble;
 	int check;
 	int oneTimeDel;
+	
+	double AvgBufferLoss;
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msgin);
@@ -44,6 +47,8 @@ void Server::initialize()
 	L=0;
 	check=0;
 	oneTimeDel=0;
+	OverflowCounter=1;
+	AvgBufferLoss =0;
 	WATCH(L);
 }
 
@@ -55,20 +60,26 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 		
 		if(queue.getLength() == N-1 && check==1){
 
+			
 			overflowTime = (simTime()-(((cMessage *)queue.front())->getTimestamp()));
 			overflowDouble = (simTime().dbl()-(((cMessage *)queue.front())->getTimestamp()).dbl());
 
-			EV << overflowTime << " OVERFLOWTIME\n";
+			//EV << overflowTime << " OVERFLOWTIME\n";
 			//EV << overflowDouble << " DOUBLEOVERFLOWTIME\n";
 			overflowBuffer.collect(overflowTime);
-
-			if(oneTimeDel!=0){
-				period = (overflowTime.dbl())/(double)(oneTimeDel);
+			
+			//if(oneTimeDel!=0){
+				//period = (double)(oneTimeDel)/(overflowTime.dbl());
+				//simtime_t NewPeriod = (Pomiar.dbl())/(double)(oneTimeDel);
 				//EV << overflowTime.dbl() << " DOUBLE RZUTOWANIE";
-				EV << period << " PERIOD\n";
-				overflowBufferPeriod.collect(period);
-			}
-		
+				//EV << period << " PERIOD\n";
+			//	EV << NewPeriod << " NewPeriod\n";
+				AvgBufferLoss = deleted/OverflowCounter;	
+				overflowBuffer.collect(AvgBufferLoss);
+				//overflowBufferPeriod.collect(period);
+			//}
+				EV << OverflowCounter << " OVERFLOWCOUNTER\n";
+				OverflowCounter++;
 				check = 1;
 				oneTimeDel=0;
 		}
@@ -88,11 +99,12 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 		
 			check = 1;
 			EV << " START\n";
-		
+			Pomiar = simTime();
+
 		}	
 
 
-		msgin->setTimestamp();
+		
 
 		if (queue.isEmpty())  //if the queue is empty, the job that has just arrived has to be served immediately, i.e. the departure event of this job has to be scheduled in the future
 		{
@@ -100,8 +112,9 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
             scheduleAt(departure_time,departure);
 		}
 
-
+		msgin->setTimestamp();
 		queue.insert(msgin); //insert the job at the end of the queue
+		
 		accepted++;
 	}
 	else {
@@ -118,11 +131,11 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 	
 	//EV << L << " L\n";
 	//EV << accepted << " ACCEPTED\n";
-	//EV << deleted << " DELETED\n";
+	EV << deleted << " DELETED\n";
 	//EV << oneTimeDel << " TEMP DEL";
 
-	if(overflowTime>1000)
-	EV << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+	//if(overflowTime>1000)
+	//EV << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
 }
 
 
