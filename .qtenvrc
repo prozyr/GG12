@@ -1,5 +1,5 @@
 [RunModeProfiles]
-run-playback-speed=1.4454397707459274
+run-playback-speed=1
 run-min-playback-speed=0.01
 run-max-playback-speed=100
 run-min-animation-speed=nan
@@ -12,24 +12,8 @@ fast-max-animation-speed=nan
 
 [Inspector-0]
 object=gg1.server.overflowPeriod
-classname=omnetpp::cDoubleHistogram
+classname=omnetpp::cLongHistogram
 id=@Variant(\0\0\0\x81\xff\xff\xff\xff\xff\xff\xff\xff)
 type=2
-geom=@Rect(459 87 954 470)
-fullscreen=false
-
-[Inspector-1]
-object=gg1.server.overflow
-classname=omnetpp::cDoubleHistogram
-id=@Variant(\0\0\0\x81\xff\xff\xff\xff\xff\xff\xff\xff)
-type=2
-geom=@Rect(492 234 954 470)
-fullscreen=false
-
-[Inspector-2]
-object=gg1.server.timetooverflow
-classname=omnetpp::cDoubleHistogram
-id=@Variant(\0\0\0\x81\xff\xff\xff\xff\xff\xff\xff\xff)
-type=2
-geom=@Rect(492 234 954 470)
+geom=@Rect(830 165 953 492)
 fullscreen=false
