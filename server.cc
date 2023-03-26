@@ -42,8 +42,8 @@ void Server::initialize()
 	overflowBufferPeriod.setNumCells(200);
 
 	timeToOverflowBuffer.setName("timetooverflow");
-	timeToOverflowBuffer.setRange(0,80);
-	timeToOverflowBuffer.setNumCells(200);
+	timeToOverflowBuffer.setRange(0,400);
+	timeToOverflowBuffer.setNumCells(4000);
 
 
 	N=10;
@@ -90,7 +90,7 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 
 		if(queue.getLength()>=N && noOverflow == 1){
 
-			timeToOverflow = (simTime()-start);
+			timeToOverflow = (simTime()-start+par("service_time"));
 
 			timeToOverflowBuffer.collect(timeToOverflow);
 
@@ -122,13 +122,7 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 		
 
 
-		if(queue.getLength() == 0 && noOverflow == 0){
-
-			noOverflow = 1;
-			start  = simTime();
-			//start = (((cMessage *)queue.front())->getTimestamp());
-		}
-
+		
 
 		msgin->setTimestamp();
 
@@ -137,6 +131,15 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 
 		if (queue.isEmpty())  //if the queue is empty, the job that has just arrived has to be served immediately, i.e. the departure event of this job has to be scheduled in the future
 		{
+
+			if(noOverflow == 0){
+
+			noOverflow = 1;
+			start  = simTime();
+			//start = (((cMessage *)queue.front())->getTimestamp());
+		}
+
+
 			departure_time=simTime()+par("service_time");
             scheduleAt(departure_time,departure);
 		}
