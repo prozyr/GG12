@@ -13,13 +13,13 @@ class Server : public cSimpleModule
 	cDoubleHistogram overflowBuffer;
 	//cLongHistogram overflowBufferPeriod;
 	cDoubleHistogram overflowBufferPeriod;
-	simtime_t start=0;
-	simtime_t overflowTime;
-	simtime_t Pomiar;
+	cDoubleHistogram timeToOverflowBuffer;
+	double noOverflow=0;
+	simtime_t overflowTime,start;
+	simtime_t timeToOverflow;
 	double period,overflowDouble;
 	int check;
 	int oneTimeDel;
-	
 	double AvgBufferLoss;
   protected:
     virtual void initialize();
@@ -41,6 +41,11 @@ void Server::initialize()
 	overflowBufferPeriod.setRange(0,20);
 	overflowBufferPeriod.setNumCells(200);
 
+	timeToOverflowBuffer.setName("timetooverflow");
+	timeToOverflowBuffer.setRange(0,80);
+	timeToOverflowBuffer.setNumCells(200);
+
+
 	N=10;
 	accepted=0;
 	deleted=0;
@@ -48,7 +53,7 @@ void Server::initialize()
 	check=0;
 	oneTimeDel=0;
 	OverflowCounter=1;
-	AvgBufferLoss =0;
+	AvgBufferLoss;
 	WATCH(L);
 }
 
@@ -58,33 +63,44 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
     if (msgin==departure)   //job departure
 	{
 		
-		if(queue.getLength() == N-1 && check==1){
+		if(queue.getLength() < N && check==1){
 
-			
 			overflowTime = (simTime()-(((cMessage *)queue.front())->getTimestamp()));
-			overflowDouble = (simTime().dbl()-(((cMessage *)queue.front())->getTimestamp()).dbl());
+			//overflowDouble = (simTime().dbl()-(((cMessage *)queue.front())->getTimestamp()).dbl());
 
 			//EV << overflowTime << " OVERFLOWTIME\n";
 			//EV << overflowDouble << " DOUBLEOVERFLOWTIME\n";
 			overflowBuffer.collect(overflowTime);
-			
-			//if(oneTimeDel!=0){
+
+		//	if(oneTimeDel!=0){
 				//period = (double)(oneTimeDel)/(overflowTime.dbl());
 				//simtime_t NewPeriod = (Pomiar.dbl())/(double)(oneTimeDel);
 				//EV << overflowTime.dbl() << " DOUBLE RZUTOWANIE";
 				//EV << period << " PERIOD\n";
 			//	EV << NewPeriod << " NewPeriod\n";
 				AvgBufferLoss = deleted/OverflowCounter;	
-				overflowBuffer.collect(AvgBufferLoss);
+				overflowBufferPeriod.collect(oneTimeDel);
 				//overflowBufferPeriod.collect(period);
-			//}
+	//		}
 				EV << OverflowCounter << " OVERFLOWCOUNTER\n";
 				OverflowCounter++;
 				check = 1;
 				oneTimeDel=0;
 		}
 
+		if(queue.getLength()>=N && noOverflow == 1){
+
+			timeToOverflow = (simTime()-start);
+
+			timeToOverflowBuffer.collect(timeToOverflow);
+
+			noOverflow = 0;
+		}
+		
 		cMessage *msg = (cMessage *)queue.pop();    //remove the finished job from the head of the queue
+
+
+
 		send(msg,"out");                            //depart the finished job
 		if (!queue.isEmpty())                         //if the queue is not empty, initiate the next service, i.e. schedule the next departure event in the future
 		{
@@ -95,16 +111,29 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 	else if(queue.getLength() <= N)                    //job arrival  (double)par("buffer_N")
 	{	
 
-		if(queue.getLength()==N && check==0){
+		if(queue.getLength()==N && check==0)
+		{
 		
 			check = 1;
-			EV << " START\n";
-			Pomiar = simTime();
+			//EV << " START\n";
+			//Pomiar = simTime();
 
 		}	
-
-
 		
+
+
+		if(queue.getLength() == 0 && noOverflow == 0){
+
+			noOverflow = 1;
+			start  = simTime();
+			//start = (((cMessage *)queue.front())->getTimestamp());
+		}
+
+
+		msgin->setTimestamp();
+
+
+
 
 		if (queue.isEmpty())  //if the queue is empty, the job that has just arrived has to be served immediately, i.e. the departure event of this job has to be scheduled in the future
 		{
@@ -112,7 +141,6 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
             scheduleAt(departure_time,departure);
 		}
 
-		msgin->setTimestamp();
 		queue.insert(msgin); //insert the job at the end of the queue
 		
 		accepted++;
