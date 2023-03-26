@@ -19,6 +19,7 @@ class Server : public cSimpleModule
 	simtime_t overflowTime,start;
 	simtime_t timeToOverflow;
 	double period,overflowDouble;
+	double getMeanPossible=0;
 	int check;
 	double K,G,B;
 	double oneTimeDel;
@@ -47,9 +48,9 @@ void Server::initialize()
 	timeToOverflowBuffer.setRange(0,400);
 	timeToOverflowBuffer.setNumCells(4000);
 
-	burstRatio.setName("burst");
-	burstRatio.setRange(0,20);
-	burstRatio.setNumCells(200);
+	//burstRatio.setName("burst");
+	//burstRatio.setRange(0,20);
+	//burstRatio.setNumCells(200);
 
 
 	N=10;
@@ -57,9 +58,7 @@ void Server::initialize()
 	deleted=0;
 	B = 0;
 	L=0;
-	K=0;
-	G=0;
-	B=0;
+
 	check=0;
 	oneTimeDel=0;
 	OverflowCounter=1;
@@ -76,6 +75,7 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 		if(oneTimeDel != 0){
 			overflowBufferPeriod.collect(oneTimeDel);
 			oneTimeDel = 0;
+			getMeanPossible=1;
 		}
 
 		if(queue.getLength() < N && check == 1){
@@ -172,16 +172,17 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 
 	L = deleted/(accepted+deleted);
 
-			
-		//G = overflowBufferPeriod.getMean();
-		//K = 1/(1-L);
-		//B = G/K;
 
-		//EV << K << " K\n";
-		//EV << G << " G\n";
-		//EV << B << " B\n";
+		if(getMeanPossible == 1){	
+		G = overflowBufferPeriod.getMean();
+		K = 1/(1-L);
+		B = G/K;
+
+		EV << K << " K\n";
+		EV << G << " G\n";
+		EV << B << " B\n";
 		//burstRatio.collect(B);
-
+		}
 		//EV << L << " L\n";
 	//EV << accepted << " ACCEPTED\n";
 	//EV << deleted << " DELETED\n";
