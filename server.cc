@@ -20,6 +20,7 @@ class Server : public cSimpleModule
 		double answer;	// Size of queue
 	}queueStat;
 	bool del, ZLICZANIE;
+	double deldel;
 	double follow1,follow2;
   protected:
     virtual void initialize();
@@ -38,6 +39,7 @@ void Server::initialize()
 	// t = 1;
 	del = false;
 	ZLICZANIE = false;
+	deldel = 1.0;
 	// scheduleAt(simTime()+t,arrival_time);
 	// Ad.2 OVERFLOW
 	hist_overflow.setName("BUFFER OVERFLOW DISTRIBUTION");
@@ -72,6 +74,7 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 			hist_over_aveL.collect(queueStat.deleted_in_one_row);
 			EV << "DELETED IN ONE ROW: " << queueStat.deleted_in_one_row << "\n";
 			follow1 = hist_overflow.getMean(); follow2 = hist_over_aveL.getMean();
+			deldel = (double)queueStat.deleted_in_one_row;
 			queueStat.deleted_in_one_row = 0;
 		}
 
@@ -107,8 +110,8 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 			departure_time=simTime()+par("service_time");
             scheduleAt(departure_time,departure);
 		}
-		if(queue.getLength() == queueStat.N-1 && ZLICZANIE){
-            hist_over_aveD.collect(simTime()-time_start_buffer);
+		if(queue.getLength() == queueStat.N-1 && ZLICZANIE && deldel>0.0){
+            hist_over_aveD.collect((simTime()-time_start_buffer)/deldel);
             ZLICZANIE = false;
         }
 		queueStat.accepted ++;
