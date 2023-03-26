@@ -15,17 +15,33 @@ fast-min-animation-speed=nan
 fast-max-animation-speed=nan
 
 [Inspector-0]
-object=gg1.server.BUFFER OVERFLOW DISTRIBUTION
-classname=omnetpp::cDoubleHistogram
-id=@Variant(\0\0\0\x81\xff\xff\xff\xff\xff\xff\xff\xff)
-type=2
-geom=@Rect(884 618 478 328)
-fullscreen=false
-
-[Inspector-1]
-object=gg1.server.BUFFER AVE. OVER. LOSSES DIST. Double
+object=gg1.server.
 classname=omnetpp::cDoubleHistogram
 id=@Variant(\0\0\0\x81\xff\xff\xff\xff\xff\xff\xff\xff)
 type=2
 geom=@Rect(1381 603 478 328)
+fullscreen=false
+
+[Inspector-1]
+object=gg1.server.timetooverflow
+classname=omnetpp::cDoubleHistogram
+id=@Variant(\0\0\0\x81\xff\xff\xff\xff\xff\xff\xff\xff)
+type=2
+geom=@Rect(1381 603 478 328)
+fullscreen=false
+
+[Inspector-2]
+object=gg1.server.overflowPeriod
+classname=omnetpp::cLongHistogram
+id=@Variant(\0\0\0\x81\xff\xff\xff\xff\xff\xff\xff\xff)
+type=2
+geom=@Rect(791 642 478 328)
+fullscreen=false
+
+[Inspector-3]
+object=gg1.server.overflow
+classname=omnetpp::cDoubleHistogram
+id=@Variant(\0\0\0\x81\xff\xff\xff\xff\xff\xff\xff\xff)
+type=2
+geom=@Rect(2194 678 478 328)
 fullscreen=false
