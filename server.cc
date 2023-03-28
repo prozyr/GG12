@@ -11,12 +11,12 @@ class Server : public cSimpleModule
 	double accepted,deleted,OverflowCounter;
 	double L;
 	cDoubleHistogram overflowBuffer;
-	cLongHistogram overflowBufferPeriod;
-	//cDoubleHistogram overflowBufferPeriod;
+	//cLongHistogram overflowBufferPeriod;
+	cDoubleHistogram overflowBufferPeriod;
 	cDoubleHistogram timeToOverflowBuffer;
-	cDoubleHistogram burstRatio;
+	//cDoubleHistogram burstRatio;
 	double noOverflow=0;
-	simtime_t overflowTime,start;
+	simtime_t overflowTime,start,poczatek;
 	simtime_t timeToOverflow;
 	double period,overflowDouble;
 	double getMeanPossible=0;
@@ -37,12 +37,12 @@ void Server::initialize()
 {	
 	departure = new cMessage("Departure");
 	overflowBuffer.setName("overflow");
-	overflowBuffer.setRange(0,20);
-	overflowBuffer.setNumCells(200);
+	overflowBuffer.setRange(0,3);
+	overflowBuffer.setNumCells(300);
 
 	overflowBufferPeriod.setName("overflowPeriod");
-	overflowBufferPeriod.setRange(0,20);
-	//overflowBufferPeriod.setNumCells(200);
+	overflowBufferPeriod.setRange(0,4);
+	overflowBufferPeriod.setNumCells(1000);
 
 	timeToOverflowBuffer.setName("timetooverflow");
 	timeToOverflowBuffer.setRange(0,400);
@@ -62,6 +62,7 @@ void Server::initialize()
 	check=0;
 	oneTimeDel=0;
 	OverflowCounter=1;
+	overflowTime=0;
 	AvgBufferLoss;
 	WATCH(L);
 }
@@ -73,46 +74,36 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 	{
 		
 		if(oneTimeDel != 0){
+
 			overflowBufferPeriod.collect(oneTimeDel);
 			oneTimeDel = 0;
 			getMeanPossible=1;
 		}
 
-		if(queue.getLength() < N && check == 1){
-
-			overflowTime = (simTime()-(((cMessage *)queue.front())->getTimestamp()));
-			//overflowDouble = (simTime().dbl()-(((cMessage *)queue.front())->getTimestamp()).dbl());
-
-			//EV << overflowTime << " OVERFLOWTIME\n";
-			//EV << overflowDouble << " DOUBLEOVERFLOWTIME\n";
-			overflowBuffer.collect(overflowTime);
-
-			//if(oneTimeDel!=0){
-				//period = (double)(oneTimeDel)/(overflowTime.dbl());
-				//simtime_t NewPeriod = (Pomiar.dbl())/(double)(oneTimeDel);
-				//EV << overflowTime.dbl() << " DOUBLE RZUTOWANIE";
-				//EV << period << " PERIOD\n";
-			//	EV << NewPeriod << " NewPeriod\n";
-			//	AvgBufferLoss = deleted/OverflowCounter;	
-				//overflowBufferPeriod.collect(oneTimeDel);
-				//overflowBufferPeriod.collect(period);
-			//}
-			//	EV << OverflowCounter << " OVERFLOWCOUNTER\n";
-				OverflowCounter++;
-				check = 0;
-				oneTimeDel=0;
-		}
-
+		
 		if(queue.getLength()>=N && noOverflow == 1){
 
 			timeToOverflow = (simTime()-start+par("service_time"));
-
-			timeToOverflowBuffer.collect(timeToOverflow);
-
-			noOverflow = 0;
 		}
 		
 		cMessage *msg = (cMessage *)queue.pop();    //remove the finished job from the head of the queue
+
+		if(queue.getLength() == N-1){
+
+			//EV << simTime() << " SIMTIME";
+			//EV << poczatek << " POCZATEK";
+			//overflowTime = (simTime()-(((cMessage *)queue.front())->getTimestamp()));
+			//overflowTime = (simTime()-poczatek);
+			//overflowDouble = (simTime().dbl()-(((cMessage *)queue.front())->getTimestamp()).dbl());
+
+			//overflowBuffer.collect(overflowTime);
+
+			//overflowBuffer.collect(overflowTime);
+
+				OverflowCounter++;
+				check = 0;
+		}
+
 
 
 		send(msg,"out");                            //depart the finished job
@@ -129,11 +120,9 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 		{
 		
 			check = 1;
-			//EV << " START\n";
-			//Pomiar = simTime();
-
 		}	
 
+		
 		msgin->setTimestamp();
 
 		if (queue.isEmpty())  //if the queue is empty, the job that has just arrived has to be served immediately, i.e. the departure event of this job has to be scheduled in the future
@@ -156,16 +145,24 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 
 		queue.insert(msgin); //insert the job at the end of the queue
 		
+		if(queue.getLength()==N){
+
+		//poczatek = simTime();
+
+		overflowBuffer.collect(departure_time - simTime());
+
+		}
+
 		accepted++;
 	}
 	else {
 
 		delete msgin;
 		deleted++;
-		if(check==1){
+	//	if(check==1){
 		oneTimeDel++;
-		EV << oneTimeDel << " TEMP DEL\n";
-		}
+	//	EV << oneTimeDel << " TEMP DEL\n";
+	//	}
 
 		
 	}
@@ -175,20 +172,22 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 
 		if(getMeanPossible == 1){	
 		G = overflowBufferPeriod.getMean();
-		K = 1/(1-L);
+		K = (1)/(1-L);
 		B = G/K;
 
-		EV << K << " K\n";
-		EV << G << " G\n";
-		EV << B << " B\n";
+	//	EV << K << " K\n";
+	//	EV << G << " G\n";
+	//	EV << B << " B\n";
 		//burstRatio.collect(B);
 		}
 		//EV << L << " L\n";
-	//EV << accepted << " ACCEPTED\n";
-	//EV << deleted << " DELETED\n";
+		//EV << accepted << " ACCEPTED\n";
+		//EV << deleted << " DELETED\n";
 
-	if(oneTimeDel>20)
+	if(overflowTime>20){
+	EV << overflowTime << " OVERFLOW\n";
 	EV << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+	}
 }
 
 
