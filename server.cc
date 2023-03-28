@@ -65,6 +65,7 @@ void Server::initialize()
 	overflowTime=0;
 	AvgBufferLoss;
 	WATCH(L);
+	WATCH(B);
 }
 
 
@@ -84,6 +85,9 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 		if(queue.getLength()>=N && noOverflow == 1){
 
 			timeToOverflow = (simTime()-start+par("service_time"));
+		
+			timeToOverflowBuffer.collect(timeToOverflow);
+			noOverflow =0;
 		}
 		
 		cMessage *msg = (cMessage *)queue.pop();    //remove the finished job from the head of the queue
@@ -175,9 +179,9 @@ void Server::handleMessage(cMessage *msgin)  //two types of messages may arrive:
 		K = (1)/(1-L);
 		B = G/K;
 
-	//	EV << K << " K\n";
-	//	EV << G << " G\n";
-	//	EV << B << " B\n";
+		EV << K << " K\n";
+		EV << G << " G\n";
+		EV << B << " B\n";
 		//burstRatio.collect(B);
 		}
 		//EV << L << " L\n";
